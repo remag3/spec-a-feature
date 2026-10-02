@@ -2442,6 +2442,85 @@ Details of a peer evaluation: The instructor may choose to see more details of o
 **Assumptions:**
 **Open Issues:**
 
+## **Notification**
+
+### **UC-NOT-missing-submission-reminder: The instructor sends reminders for missing submissions**
+
+**UC ID and Name:** UC-NOT-missing-submission-reminder: Send reminders for missing submissions
+**Created By:**
+**Date Created:**
+**Primary Actor:** instructor
+**Secondary Actors:** student (recipient of the reminder email)
+**Trigger:** The instructor indicates to send submission reminders for a course section.
+**Description:** The instructor wants to send submission reminder emails to students who have not yet submitted their weekly activity report, peer evaluation, or both for the current reminder cycle, so that only students who still owe work are contacted.
+
+**Preconditions:**
+- PRE-1. The instructor is logged into the system.
+- PRE-2. The instructor is assigned to the course section (BR-section-scoped-access).
+- PRE-3. The current week is one of the course section's active weeks (BR-active-weeks).
+
+**Postconditions:**
+- POST-1. A submission reminder email has been sent to each student who has not yet submitted one or more items due today, listing only the item(s) that student has not submitted.
+- POST-2. Students who have already submitted all items due today did not receive a reminder.
+- POST-3. No submission records were created, modified, or deleted.
+
+**Main Success Scenario:**
+1. The instructor indicates to send submission reminders for one of her course sections.
+2. The system identifies which items are due today for the selected course section — the weekly activity report (if today is the section's configured WAR due day), the peer evaluation (if today is the section's configured peer evaluation due day), or both.
+3. For each item due today, the system determines which students have not yet submitted, per the "Submission status determination" defined in the Associated Information of this use case. The system excludes students who are not assigned to a team (BR-team-assignment-required) and students whose accounts are deactivated (BR-student-lifecycle).
+4. The system displays the list of students who have outstanding submissions, grouped by item, according to the "Non-submitter list display" defined in the Associated Information of this use case.
+5. The instructor reviews the list and confirms that she wants to send reminders to the listed students.
+6. The system sends a reminder email to each listed student. Each email lists only the item(s) that student has not submitted and their due times. The email is delivered through the Gmail SMTP integration (CI-email-notifications). The system applies BR-reminder-skip-submitted: a reminder is not sent for any item the student has already submitted.
+7. The system reports how many reminders were sent and how many failed, per the "Delivery reporting" defined in the Associated Information of this use case.
+8. Use case ends.
+
+**Extensions:**
+- **2a. No items are due today for this course section:**
+  - 2a1. The system informs the instructor that neither the weekly activity report nor the peer evaluation is due today for the selected course section.
+  - 2a2. Use case ends.
+- **3a. All students who are eligible to submit have already submitted all items due today:**
+  - 3a1. The system informs the instructor that all eligible students have submitted and no reminders are needed.
+  - 3a2. Use case ends.
+- **3b. The current week is not one of the course section's active weeks:**
+  - 3b1. The system informs the instructor that the current week is not an active week for this course section (BR-active-weeks) and that no reminders can be sent.
+  - 3b2. Use case ends.
+- **3c. For a peer evaluation: the submission window for the previous week has closed (the previous week is no longer the week before the current one, or it is not an active week):**
+  - 3c1. The system excludes the peer evaluation from the items being reminded about and informs the instructor that the peer evaluation submission window has closed (BR-evaluation-submission-window). If no items remain due, the flow continues at extension 3a.
+- **5a. The instructor cancels:**
+  - 5a1. No reminders are sent. Use case ends.
+- **6a. The mail server rejects a student's email address:**
+  - 6a1. The system logs the failure, skips the student, and continues sending to the remaining students. The failed address is included in the delivery report (step 7).
+- **6b. A student submits after the instructor reviewed the list (step 4) but before the system sends her reminder (step 6):**
+  - 6b1. The system re-checks the student's submission status immediately before sending (BR-reminder-skip-submitted). If the student has now submitted, the system skips her and does not send a reminder for that item.
+
+**Priority:** Medium
+**Frequency of Use:** 2–4 instructors, average of 1–2 usages per section per week (on due days).
+**Business Rules:** BR-section-scoped-access (the instructor may send reminders only for a course section she is assigned to), BR-role-based-access, BR-team-assignment-required (a student not assigned to a team is not treated as a non-submitter), BR-active-weeks (reminders are sent only for active weeks), BR-evaluation-submission-window (peer evaluation reminders are not sent once the submission window has closed), BR-reminder-skip-submitted (a reminder is not sent for an item the student has already submitted), BR-student-lifecycle (deactivated students are excluded)
+
+**Associated Information:**
+
+Submission status determination:
+- Weekly activity report (WAR): A student "has not submitted" her WAR for the current week if and only if she has zero Activity rows for the current ISO week. A student who submitted activities and later deleted all of them is treated as not having submitted.
+- Peer evaluation: A student "has not submitted" her peer evaluation if and only if she has no PeerEvaluation record as evaluator for the previous ISO week (BR-evaluation-submission-window — a peer evaluation covers the previous week).
+- The check is per item: a student who has submitted her WAR but not her peer evaluation receives a reminder listing only the peer evaluation, and vice versa.
+
+Non-submitter list display:
+- Grouped by item (WAR, peer evaluation).
+- For each item: student name, email, team name.
+- Sorted by team name ascending, then last name ascending.
+- The list is scoped to the instructor's course section (BR-section-scoped-access) and contains only students assigned to a team (BR-team-assignment-required). Deactivated students are excluded (BR-student-lifecycle).
+- Submission status is student educational record data and is displayed only to the course section's instructor or course admin (CO-ferpa, BR-role-based-access).
+
+Delivery reporting:
+- After sending, the system displays: total reminders sent, total failures, and the names and email addresses of any students whose reminders failed. The instructor may retry failed sends by re-running the use case; already-submitted students are re-checked (BR-reminder-skip-submitted).
+
+The instructor shall be able to cancel the use case at any time prior to confirming the send (step 5).
+
+**Related Use Cases:** UC-SEC-find-sections: Find course sections; UC-WAR-team-war-report: Generate a WAR report of a team (its Associated Information notes that the report shows who did not submit); UC-EVA-section-evaluation-report: Generate a peer evaluation report of the entire course section (likewise shows who did not submit).
+**Assumptions:**
+- The instructor accesses the use case from a course section she is assigned to, not from a global view. The course section's configured due days and due times are already set (UC-SEC-edit-section).
+**Open Issues:**
+
 ## **Templates and Provisioning**
 
 ### **UC-TPL-provision-documents: The course admin creates team documents from built-in templates**
